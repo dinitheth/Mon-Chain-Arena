@@ -2,7 +2,6 @@
 
 Welcome to Chain Arena, an exhilarating on-chain arena battle game built with Next.js and powered by the Monad blockchain. In this game, your mission is to survive multiple rounds of combat against increasingly intelligent AI-powered bots. Your victories and stats are recorded permanently on an on-chain leaderboard.
 
-![Chain Arena Gameplay](https://i.imgur.com/example.png) <!-- You can replace this with a real screenshot of your game -->
 
 ## Features
 
