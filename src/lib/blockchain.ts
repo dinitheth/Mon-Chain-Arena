@@ -11,20 +11,33 @@ const LEADERBOARD_API_URL = 'https://monad-games-id-site.vercel.app/api/leaderbo
 async function getContract() {
   const provider = new JsonRpcProvider(MONAD_RPC_URL);
   
-  if (!process.env.ADMIN_PRIVATE_KEY) {
-    throw new Error('ADMIN_PRIVATE_KEY is not set in the environment variables.');
+  let privateKey = process.env.ADMIN_PRIVATE_KEY;
+
+  if (!privateKey) {
+    console.error('ADMIN_PRIVATE_KEY is not set in environment variables.');
+    throw new Error('Server configuration error: ADMIN_PRIVATE_KEY is missing.');
   }
-  const adminWallet = new Wallet(process.env.ADMIN_PRIVATE_KEY, provider);
+
+  if (!privateKey.startsWith('0x')) {
+    privateKey = `0x${privateKey}`;
+  }
   
-  const contract = new Contract(CONTRACT_ADDRESS, contractAbi, adminWallet);
-  return contract;
+  try {
+    const adminWallet = new Wallet(privateKey, provider);
+    const contract = new Contract(CONTRACT_ADDRESS, contractAbi, adminWallet);
+    return contract;
+  } catch (error) {
+    console.error('Failed to create wallet or contract instance:', error);
+    throw new Error('Server configuration error: Could not initialize wallet.');
+  }
 }
 
 export async function getLeaderboard(): Promise<PlayerRecord[]> {
   try {
-    const response = await fetch(LEADERBOARD_API_URL);
+    // Revalidate leaderboard data every 60 seconds
+    const response = await fetch(LEADERBOARD_API_URL, { next: { revalidate: 60 } });
     if (!response.ok) {
-      console.error('Failed to fetch leaderboard:', response.statusText);
+      console.error('Failed to fetch leaderboard:', response.status, response.statusText);
       return [];
     }
     const data = await response.json();
@@ -44,18 +57,20 @@ export async function getLeaderboard(): Promise<PlayerRecord[]> {
 }
 
 export async function recordVictory(address: string, name: string, kills: number, deaths: number): Promise<void> {
-  console.log('Recording victory on mock blockchain...');
-  console.log({ address, name, kills, deaths });
+  console.log(`Attempting to record victory for ${name} (${address}) with ${kills} kills and ${deaths} deaths.`);
   
   try {
     const contract = await getContract();
-    // We send `deaths` as the transactionAmount, assuming 1 death = 1 transaction for this game session
+    console.log('Contract and wallet initialized. Sending transaction...');
+    
     const tx = await contract.updatePlayerData(address, kills, deaths);
+    console.log(`Transaction sent. Waiting for confirmation... Hash: ${tx.hash}`);
+    
     await tx.wait();
     console.log('Victory recorded on-chain!', tx.hash);
   } catch (error) {
-      console.error('Failed to record victory on-chain:', error);
-      // We are throwing the error so the client can handle it.
-      throw error;
+      console.error('Full error details on server:', error);
+      // Re-throw a generic error to the client to avoid leaking details.
+      throw new Error('Failed to record victory on-chain. Please check server logs for details.');
   }
 }
