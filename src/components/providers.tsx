@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         appId={privyAppId}
         config={{
           loginMethodsAndOrder: {
-            primary: ['email', 'google', 'privy:cmd8euall0037le0my79qpz42'],
+            primary: ['privy:cmd8euall0037le0my79qpz42'],
           },
           appearance: {
             theme: 'dark',
