@@ -6,7 +6,7 @@ import { contractAbi } from './contract-abi';
 
 const CONTRACT_ADDRESS = '0xceCBFF203C8B6044F52CE23D914A1bfD997541A4';
 const MONAD_RPC_URL = 'https://testnet-rpc.monad.xyz/';
-const LEADERBOARD_API_URL = 'https://monad-games-id-site.vercel.app/api/leaderboard';
+const LEADERBOARD_API_URL = 'https://monad-games-id-site.vercel.app/api/leaderboard?gameId=246&sortBy=scores';
 
 async function getContract() {
   const provider = new JsonRpcProvider(MONAD_RPC_URL);
@@ -34,24 +34,37 @@ async function getContract() {
 
 export async function getLeaderboard(): Promise<PlayerRecord[]> {
   try {
-    // Revalidate leaderboard data every 60 seconds
     const response = await fetch(LEADERBOARD_API_URL, { next: { revalidate: 60 } });
+
     if (!response.ok) {
       console.error('Failed to fetch leaderboard:', response.status, response.statusText);
       return [];
     }
-    const data = await response.json();
-    // Sort leaderboard by kills descending
-    const sortedLeaderboard = data.leaderboard.sort((a: any, b: any) => b.score - a.score);
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await response.text();
+      console.error('Expected JSON but received non-JSON response from leaderboard API:', textResponse);
+      throw new Error('Invalid response format from leaderboard API.');
+    }
     
-    return sortedLeaderboard.map((player: any) => ({
+    const responseData = await response.json();
+
+    const leaderboardData = responseData.data;
+
+    if (!Array.isArray(leaderboardData)) {
+      console.error("Leaderboard data is not an array as expected. Received:", responseData);
+      return [];
+    }
+    
+    return leaderboardData.slice(0, 10).map((player: any) => ({
         address: player.walletAddress,
         name: player.username,
         kills: player.score,
-        deaths: player.transactions
+        gamesPlayed: player.transactions || 0 // The API doesn't provide this, so we default to 0
     }));
   } catch (error) {
-    console.error('Error fetching leaderboard:', error);
+    console.error('Error fetching or processing leaderboard:', error);
     return [];
   }
 }
@@ -68,9 +81,14 @@ export async function recordVictory(address: string, name: string, kills: number
     
     await tx.wait();
     console.log('Victory recorded on-chain!', tx.hash);
-  } catch (error) {
-      console.error('Full error details on server:', error);
-      // Re-throw a generic error to the client to avoid leaking details.
-      throw new Error('Failed to record victory on-chain. Please check server logs for details.');
+  } catch (error: any) {
+    console.error('An error occurred while recording victory on-chain. Full error details:', error);
+    
+    if (error.code === 'INSUFFICIENT_FUNDS') {
+        console.error('Admin wallet has insufficient funds to send the transaction.');
+        throw new Error('Server wallet out of funds. Please contact support.');
+    }
+    
+    throw new Error('Failed to record victory on-chain. Please check server logs for details.');
   }
 }
