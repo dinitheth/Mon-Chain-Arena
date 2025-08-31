@@ -5,7 +5,7 @@ import type { PlayerRecord } from "@/types/game";
 import { contractAbi } from './contract-abi';
 
 const CONTRACT_ADDRESS = '0xceCBFF203C8B6044F52CE23D914A1bfD997541A4';
-const MONAD_RPC_URL = 'https://testnet.monad.xyz';
+const MONAD_RPC_URL = 'https://testnet-rpc.monad.xyz/';
 const LEADERBOARD_API_URL = 'https://monad-games-id-site.vercel.app/api/leaderboard';
 
 async function getContract() {
