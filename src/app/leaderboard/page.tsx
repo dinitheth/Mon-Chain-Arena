@@ -32,9 +32,8 @@ export default async function LeaderboardPage() {
                 <TableRow>
                   <TableHead className="w-[50px]">Rank</TableHead>
                   <TableHead>Player</TableHead>
-                  <TableHead className="text-right">Kills</TableHead>
-                  <TableHead className="text-right">Deaths</TableHead>
-                  <TableHead className="text-right">Wallet</TableHead>
+                  <TableHead>Wallet</TableHead>
+                  <TableHead className="text-right">Score</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -42,13 +41,12 @@ export default async function LeaderboardPage() {
                   <TableRow key={player.address}>
                     <TableCell className="font-bold text-lg">{index + 1}</TableCell>
                     <TableCell className="font-medium">{player.name}</TableCell>
-                    <TableCell className="text-right text-green-500 font-bold">{player.kills}</TableCell>
-                    <TableCell className="text-right text-red-500 font-bold">{player.deaths}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <Badge variant="secondary" className="font-code">
                         {`${player.address.substring(0, 6)}...${player.address.substring(player.address.length - 4)}`}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-right text-green-500 font-bold">{player.kills}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
